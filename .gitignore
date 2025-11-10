@@ -11,5 +11,5 @@ allure-results/
 *.html text
 *.csv text
 *.txt text
-allure-results/
-allure-report/
+"allure-results/" 
+"allure-report/" 
