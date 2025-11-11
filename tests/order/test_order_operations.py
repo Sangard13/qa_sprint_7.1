@@ -8,7 +8,6 @@ from utils.helpers import Helpers
 class TestOrderOperations:
 
     @allure.title("Accept order")
-    @allure.description("Test accepting order by courier")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.smoke
     @pytest.mark.order
@@ -29,7 +28,6 @@ class TestOrderOperations:
             assert response_data.get("ok") == True
 
     @allure.title("Finish order")
-    @allure.description("Test finishing accepted order")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.smoke
     @pytest.mark.order
@@ -49,28 +47,27 @@ class TestOrderOperations:
 
         with allure.step("Finish order"):
             response = order_api.finish_order(order_id)
-            # API может возвращать 200 или другую ошибку в зависимости от состояния
-            assert response.status_code in [200, 400], f"Unexpected status: {response.status_code}"
-            if response.status_code == 200:
-                response_data = Helpers.extract_json(response)
-                assert response_data.get("ok") == True
+            Helpers.check_response_status(response, 200)
+            response_data = Helpers.extract_json(response)
+            assert response_data.get("ok") == True
 
-    @allure.title("Cancel order")
-    @allure.description("Test canceling order")
+    @allure.title("Try to cancel order")
     @allure.severity(allure.severity_level.NORMAL)
     @pytest.mark.regression
     @pytest.mark.order
-    def test_cancel_order(self, create_order, order_api):
+    def test_try_cancel_order(self, create_order, order_api):
         with allure.step("Create order"):
             order_data, track_number, _ = create_order
 
-        with allure.step("Cancel order"):
+        with allure.step("Try to cancel order"):
             response = order_api.cancel_order(track_number)
-            # API может возвращать 200 или 400 в зависимости от статуса заказа
-            assert response.status_code in [200, 400], f"Unexpected status: {response.status_code}"
+            # API возвращает 400 при попытке отмены
+            Helpers.check_response_status(response, 400)
+            response_data = Helpers.extract_json(response)
+            assert "code" in response_data
+            assert response_data["code"] == 400
 
     @allure.title("Accept non-existent order")
-    @allure.description("Test accepting non-existent order")
     @allure.severity(allure.severity_level.NORMAL)
     @pytest.mark.regression
     @pytest.mark.order
@@ -82,7 +79,6 @@ class TestOrderOperations:
             response = order_api.accept_order(999999, courier_id)
 
         with allure.step("Check error response"):
-            # API возвращает 404 для несуществующего заказа
             Helpers.check_response_status(response, 404)
             response_data = Helpers.extract_json(response)
             assert "code" in response_data
@@ -90,7 +86,6 @@ class TestOrderOperations:
             assert "message" in response_data
 
     @allure.title("Accept order without courier ID")
-    @allure.description("Test accepting order without courier ID")
     @allure.severity(allure.severity_level.NORMAL)
     @pytest.mark.regression
     @pytest.mark.order
@@ -104,11 +99,37 @@ class TestOrderOperations:
             order_id = track_response.json()["order"]["id"]
 
         with allure.step("Try to accept order without courier ID"):
-            # Передаем пустой courier_id
             response = order_api.accept_order(order_id, "")
 
         with allure.step("Check error response"):
-            # API возвращает 400 для отсутствующего courierId
+            Helpers.check_response_status(response, 400)
+            response_data = Helpers.extract_json(response)
+            assert "code" in response_data
+            assert response_data["code"] == 400
+
+    @allure.title("Finish non-existent order")
+    @allure.severity(allure.severity_level.NORMAL)
+    @pytest.mark.regression
+    @pytest.mark.order
+    def test_finish_nonexistent_order(self, order_api):
+        with allure.step("Try to finish non-existent order"):
+            response = order_api.finish_order(999999)
+
+        with allure.step("Check error response"):
+            Helpers.check_response_status(response, 404)
+            response_data = Helpers.extract_json(response)
+            assert "code" in response_data
+            assert response_data["code"] == 404
+
+    @allure.title("Cancel non-existent order")
+    @allure.severity(allure.severity_level.NORMAL)
+    @pytest.mark.regression
+    @pytest.mark.order
+    def test_cancel_nonexistent_order(self, order_api):
+        with allure.step("Try to cancel non-existent order"):
+            response = order_api.cancel_order(999999)
+
+        with allure.step("Check error response"):
             Helpers.check_response_status(response, 400)
             response_data = Helpers.extract_json(response)
             assert "code" in response_data

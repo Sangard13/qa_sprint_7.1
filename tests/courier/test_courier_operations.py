@@ -34,8 +34,6 @@ class TestCourierOperations:
 
         response = courier_api.get_orders_count(courier_id)
 
-        # API возвращает 404 если у курьера нет заказов или курьер не найден
-        # Используем проверку на несколько возможных статусов
         Helpers.check_response_status_in(response, [200, 404])
 
         if response.status_code == 200:
